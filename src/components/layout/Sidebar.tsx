@@ -6,10 +6,12 @@ import { usePathname } from 'next/navigation';
 import { useRealtime } from '@/lib/realtime';
 import { cn } from '@/lib/utils';
 import {
+  IconAlertTriangle,
   IconBadge,
   IconBell,
   IconBolt,
   IconChart,
+  IconGate,
   IconGrid,
   IconLogs,
   IconParking,
@@ -21,7 +23,10 @@ export const NAV_ITEMS = [
   { href: '/parking', label: 'Parking Allocations', Icon: IconParking },
   { href: '/visitors', label: 'Visitor Management', Icon: IconVisitor },
   { href: '/ev', label: 'EV Charging Stations', Icon: IconBolt },
+  { href: '/hardware', label: 'Hardware', Icon: IconGate },
   { href: '/permits', label: 'Permit Holders', Icon: IconBadge },
+  { href: '/billing', label: 'Billing', Icon: IconChart },
+  { href: '/violations', label: 'Violations', Icon: IconAlertTriangle },
   { href: '/logs', label: 'Access Logs', Icon: IconLogs },
   { href: '/reports', label: 'Reports', Icon: IconChart },
 ] as const;

@@ -92,6 +92,11 @@ export interface RealtimeContextValue {
   releaseSpot: (spotId: string) => void;
   reportSpotIssue: (spotId: string, note?: string) => void;
   assignPermit: (input: NewPermitInput) => PermitHolder;
+  toggleGateEventFlag: (eventId: string) => void;
+  addToWaitlist: (entry: Omit<WaitlistEntry, 'id' | 'position'>) => void;
+  updatePricing: (patch: Partial<EvPricing>) => void;
+  reportStationFault: (stationId: string, summary: string) => void;
+  resolveTicket: (ticketId: string) => void;
 }
 
 const RealtimeContext = React.createContext<RealtimeContextValue | null>(null);
@@ -117,6 +122,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const spotsRef = React.useRef<ParkingSpot[]>([]);
   const sessionsRef = React.useRef<ChargingSession[]>([]);
   const stationsRef = React.useRef<ChargingStation[]>([]);
+  React.useEffect(() => {
+    sessionsRef.current = sessions;
+  }, [sessions]);
+  React.useEffect(() => {
+    stationsRef.current = stations;
+  }, [stations]);
   React.useEffect(() => {
     spotsRef.current = spots;
   }, [spots]);
@@ -150,6 +161,19 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     setActivity((prev) => [event, ...prev].slice(0, 40));
   }, []);
 
+  const patchSpot = React.useCallback((spotId: string, patch: Partial<ParkingSpot>) => {
+    setSpots((prev) =>
+      prev.map((spot) => (spot.id === spotId ? { ...spot, ...patch, updatedAt: Date.now() } : spot)),
+    );
+  }, []);
+
+  const nextVisitorBay = React.useCallback((): string => {
+    const open = spotsRef.current.find(
+      (spot) => spot.type === 'visitor' && spot.status === 'available',
+    );
+    return open?.id ?? 'L1-A06';
+  }, []);
+
   // Simulated upstream event stream. Replace body with WS message handling.
   React.useEffect(() => {
     if (connection !== 'connected') return;
@@ -165,6 +189,44 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
       const plate = PLATE_POOL[Math.floor(Math.random() * PLATE_POOL.length)] ?? 'UNKNOWN';
       const roll = Math.random();
+
+      if (sessionsRef.current.length > 0) {
+        const dtHours = SIM_TICK_MS / 3_600_000;
+        const advanced = sessionsRef.current.map((session) => {
+          const station = stationsRef.current.find((s) => s.id === session.stationId);
+          const delivered = Math.min(
+            session.targetKwh,
+            session.kwhDelivered + (station?.powerKw ?? 7) * dtHours,
+          );
+          return { ...session, kwhDelivered: Math.round(delivered * 10) / 10 };
+        });
+        const completed = advanced.filter((s) => s.kwhDelivered >= s.targetKwh);
+        const remaining = advanced.filter((s) => s.kwhDelivered < s.targetKwh);
+        sessionsRef.current = remaining;
+        setSessions(remaining);
+        if (completed.length > 0) {
+          setStations((prev) =>
+            prev.map((station) => {
+              if (!completed.some((s) => s.stationId === station.id)) return station;
+              return {
+                ...station,
+                portsInUse: Math.max(0, station.portsInUse - 1),
+                status: station.portsInUse <= 1 ? 'available' : station.status,
+              };
+            }),
+          );
+          for (const session of completed) {
+            pushActivity({
+              id: uid('evt'),
+              timestamp: Date.now(),
+              kind: 'charge_complete',
+              message: `Charging complete — ${session.kwhDelivered} kWh delivered at ${session.stationId}`,
+              actor: session.userName,
+              spot: session.stationId,
+            });
+          }
+        }
+      }
 
       if (spot.status === 'available' && roll < 0.6) {
         const nextStatus: SpotStatus = spot.type === 'ev' && roll < 0.15 ? 'charging' : 'occupied';
@@ -215,9 +277,27 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           spot: spot.id,
         });
       }
+      // Occasional gate read so the log page feels live.
+      if (Math.random() < 0.25) {
+        const plate = PLATE_POOL[Math.floor(Math.random() * PLATE_POOL.length)] ?? 'UNKNOWN';
+        setGateEvents((prev) =>
+          [
+            {
+              id: uid('gat'),
+              timestamp: Date.now(),
+              eventType: 'entry' as const,
+              plate,
+              gate: 'P1 Entry' as const,
+              result: 'granted' as const,
+              detail: 'ANPR match — permit validated',
+            },
+            ...prev,
+          ].slice(0, 80),
+        );
+      }
     }, SIM_TICK_MS);
     return () => window.clearInterval(interval);
-  }, [connection, pushActivity]);
+  }, [connection, pushActivity, patchSpot]);
 
   // Clock tick for relative timestamps and the status-bar clock.
   React.useEffect(() => {
@@ -257,19 +337,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     },
     [],
   );
-
-  const patchSpot = React.useCallback((spotId: string, patch: Partial<ParkingSpot>) => {
-    setSpots((prev) =>
-      prev.map((spot) => (spot.id === spotId ? { ...spot, ...patch, updatedAt: Date.now() } : spot)),
-    );
-  }, []);
-
-  const nextVisitorBay = React.useCallback((): string => {
-    const open = spotsRef.current.find(
-      (spot) => spot.type === 'visitor' && spot.status === 'available',
-    );
-    return open?.id ?? 'L1-A06';
-  }, []);
 
   const issuePass = React.useCallback<RealtimeContextValue['issuePass']>(
     (draft) => {
@@ -444,6 +511,95 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     [patchSpot, pushActivity],
   );
 
+  const toggleGateEventFlag = React.useCallback<RealtimeContextValue['toggleGateEventFlag']>((eventId) => {
+    setGateEvents((prev) =>
+      prev.map((event) => (event.id === eventId ? { ...event, flagged: !event.flagged } : event)),
+    );
+  }, []);
+
+  const addToWaitlist = React.useCallback<RealtimeContextValue['addToWaitlist']>((entry) => {
+    setWaitlist((prev) => [
+      ...prev,
+      {
+        ...entry,
+        id: uid('wtl'),
+        position: prev.filter((e) => e.permitType === entry.permitType).length + 1,
+      },
+    ]);
+  }, []);
+
+  const updatePricing = React.useCallback<RealtimeContextValue['updatePricing']>(
+    (patch) => {
+      setPricing((prev) => ({ ...prev, ...patch }));
+      pushActivity({
+        id: uid('evt'),
+        timestamp: Date.now(),
+        kind: 'maintenance',
+        message: `EV pricing updated — L2 ${(patch.l2PerKwh ?? pricing.l2PerKwh).toFixed(2)}/kWh, DCFC ${(patch.dcfcPerKwh ?? pricing.dcfcPerKwh).toFixed(2)}/kWh`,
+        actor: 'EV Network Admin',
+      });
+    },
+    [pricing.dcfcPerKwh, pricing.l2PerKwh, pushActivity],
+  );
+
+  const reportStationFault = React.useCallback<RealtimeContextValue['reportStationFault']>(
+    (stationId, summary) => {
+      setStations((prev) =>
+        prev.map((station) =>
+          station.id === stationId
+            ? { ...station, status: 'fault', portsInUse: 0, note: summary }
+            : station,
+        ),
+      );
+      setTickets((prev) => [
+        {
+          id: `MT-${String(prev.length + 42).padStart(4, '0')}`,
+          stationId,
+          openedAt: Date.now(),
+          severity: 'major',
+          summary,
+          status: 'open',
+        },
+        ...prev,
+      ]);
+      raiseAlert('critical', `Charger fault — ${stationId}`, summary, 'EV Network / Operator Report');
+      pushActivity({
+        id: uid('evt'),
+        timestamp: Date.now(),
+        kind: 'maintenance',
+        message: `Fault reported on ${stationId} — ${summary}`,
+        actor: 'Control Room',
+        spot: stationId,
+      });
+    },
+    [pushActivity, raiseAlert],
+  );
+
+  const resolveTicket = React.useCallback<RealtimeContextValue['resolveTicket']>(
+    (ticketId) => {
+      const ticket = tickets.find((t) => t.id === ticketId);
+      setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: 'resolved' } : t)));
+      if (ticket) {
+        setStations((prev) =>
+          prev.map((station) =>
+            station.id === ticket.stationId && !prev.some((s) => s.status === 'fault')
+              ? { ...station, status: 'available', note: undefined }
+              : station,
+          ),
+        );
+        pushActivity({
+          id: uid('evt'),
+          timestamp: Date.now(),
+          kind: 'maintenance',
+          message: `Ticket ${ticket.id} resolved — ${ticket.stationId} back in service`,
+          actor: 'EV Maintenance',
+          spot: ticket.stationId,
+        });
+      }
+    },
+    [pushActivity, tickets],
+  );
+
   const summary = React.useMemo(() => summarizeOccupancy(spots), [spots]);
 
   const value = React.useMemo(
@@ -453,6 +609,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       holders,
       passes,
       visits,
+      stations,
+      sessions,
+      tickets,
+      pricing,
+      gateEvents,
+      waitlist,
       activity,
       alerts,
       summary,
@@ -465,6 +627,11 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       releaseSpot,
       reportSpotIssue,
       assignPermit,
+      toggleGateEventFlag,
+      addToWaitlist,
+      updatePricing,
+      reportStationFault,
+      resolveTicket,
     }),
     [
       connection,
@@ -472,6 +639,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       holders,
       passes,
       visits,
+      stations,
+      sessions,
+      tickets,
+      pricing,
+      gateEvents,
+      waitlist,
       activity,
       alerts,
       summary,
@@ -484,6 +657,11 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       releaseSpot,
       reportSpotIssue,
       assignPermit,
+      toggleGateEventFlag,
+      addToWaitlist,
+      updatePricing,
+      reportStationFault,
+      resolveTicket,
     ],
   );
 

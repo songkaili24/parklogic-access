@@ -129,12 +129,13 @@ export interface ChargingStation {
   id: string;
   level: string;
   zone: string;
-  network: 'AC Level 2' | 'DC Fast Charge';
+  chargerType: 'Level 2' | 'DC Fast Charge';
   powerKw: number;
   ports: number;
   portsInUse: number;
-  status: 'online' | 'offline' | 'degraded';
-  loadShed: boolean;
+  status: 'available' | 'charging' | 'fault' | 'reserved';
+  kwhToday: number;
+  note?: string;
 }
 
 export interface ChargingSession {

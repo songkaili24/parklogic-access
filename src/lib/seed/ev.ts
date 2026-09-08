@@ -3,14 +3,14 @@ import { uid } from '@/lib/utils';
 
 export function generateStations(): ChargingStation[] {
   return [
-    { id: 'EV-L3-F01', level: 'L3', zone: 'F', network: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'online', loadShed: false },
-    { id: 'EV-L3-F02', level: 'L3', zone: 'F', network: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'online', loadShed: false },
-    { id: 'EV-L3-F03', level: 'L3', zone: 'F', network: 'AC Level 2', powerKw: 11, ports: 1, portsInUse: 1, status: 'online', loadShed: true },
-    { id: 'EV-L3-F04', level: 'L3', zone: 'F', network: 'AC Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'online', loadShed: true },
-    { id: 'EV-L3-F05', level: 'L3', zone: 'F', network: 'AC Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'online', loadShed: false },
-    { id: 'EV-L3-F06', level: 'L3', zone: 'F', network: 'AC Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'degraded', loadShed: false },
-    { id: 'EV-L3-F07', level: 'L3', zone: 'F', network: 'AC Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'online', loadShed: false },
-    { id: 'EV-L3-F08', level: 'L3', zone: 'F', network: 'AC Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'offline', loadShed: false },
+    { id: 'EV-L3-F01', level: 'L3', zone: 'F', chargerType: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 84.2 },
+    { id: 'EV-L3-F02', level: 'L3', zone: 'F', chargerType: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 61.7 },
+    { id: 'EV-L3-F03', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 18.4 },
+    { id: 'EV-L3-F04', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 9.1 },
+    { id: 'EV-L3-F05', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 12.6 },
+    { id: 'EV-L3-F06', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 7.8, note: 'RFID reader intermittent — falls back to app auth' },
+    { id: 'EV-L3-F07', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'reserved', kwhToday: 4.2 },
+    { id: 'EV-L3-F08', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'fault', kwhToday: 0, note: 'Connector latch jam — cable retraction fault' },
   ];
 }
 
@@ -21,10 +21,10 @@ const SESSION_USERS = [
 ];
 
 export function generateSessions(stations: ChargingStation[]): ChargingSession[] {
-  const busy = stations.filter((station) => station.portsInUse > 0);
-  return busy.map((station, index) => {
+  const charging = stations.filter((station) => station.status === 'charging');
+  return charging.map((station, index) => {
     const user = SESSION_USERS[index % SESSION_USERS.length]!;
-    const isDcfc = station.network === 'DC Fast Charge';
+    const isDcfc = station.chargerType === 'DC Fast Charge';
     return {
       id: uid('ses'),
       stationId: station.id,

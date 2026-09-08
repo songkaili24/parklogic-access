@@ -2,10 +2,9 @@
 
 import * as React from 'react';
 
-import type { ChargingSession, ChargingStation } from '@/lib/types';
-import { HOURLY_OCCUPANCY_PROFILE } from '@/lib/constants';
+import type { ChargingStation } from '@/lib/types';
 import { useRealtime } from '@/lib/realtime';
-import { cn, formatClock } from '@/lib/utils';
+import { formatClock } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { IconCheck } from '@/components/ui/Icons';

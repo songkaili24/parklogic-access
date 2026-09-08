@@ -6,7 +6,6 @@ import type { ChargingSession, ChargingStation } from '@/lib/types';
 import { HOURLY_OCCUPANCY_PROFILE } from '@/lib/constants';
 import { useRealtime } from '@/lib/realtime';
 import { cn, formatClock, relativeTime } from '@/lib/utils';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { IconBolt } from '@/components/ui/Icons';
 import { PricingPanel, StationCard } from '@/components/ev/EvStationCard';

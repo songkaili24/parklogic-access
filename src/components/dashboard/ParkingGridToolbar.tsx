@@ -1,6 +1,6 @@
 'use client';
 
-import type { ParkingSpot, PermitType, VehicleClass } from '@/lib/types';
+import type { PermitType, VehicleClass } from '@/lib/types';
 import { PERMIT_TYPE_LABELS, VEHICLE_CLASS_LABELS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
 import { IconSearch } from '@/components/ui/Icons';

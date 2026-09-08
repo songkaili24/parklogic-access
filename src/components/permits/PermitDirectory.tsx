@@ -2,16 +2,14 @@
 
 import * as React from 'react';
 
-import type { PermitType, VehicleClass, WaitlistEntry } from '@/lib/types';
-import { PERMIT_TYPE_LABELS, VEHICLE_CLASS_LABELS } from '@/lib/constants';
+import type { PermitType, WaitlistEntry } from '@/lib/types';
+import { PERMIT_TYPE_LABELS } from '@/lib/constants';
 import { permitStatus } from '@/lib/permits';
 import { downloadCsv } from '@/lib/csv';
 import { useRealtime } from '@/lib/realtime';
-import { validatePlate } from '@/lib/validation';
 import { cn, relativeTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { LicensePlateInput } from '@/components/ui/LicensePlateInput';
 import { IconSearch } from '@/components/ui/Icons';
 import { NewPermitDialog } from '@/components/permits/NewPermitDialog';
 

@@ -1,12 +1,12 @@
-import type { PermitType, Property } from '@/lib/types';
+import type { EvPricing, GateId, PermitType, VehicleClass } from '@/lib/types';
 
-export const PROPERTIES: Property[] = [
+export const PROPERTIES = [
   {
     id: 'meridian-tower',
     name: 'Meridian Tower — Levels L1–L3',
     shortName: 'Meridian Tower',
     levels: 3,
-    totalSpots: 128,
+    totalSpots: 120,
   },
   {
     id: 'harbor-point',
@@ -30,15 +30,35 @@ export const TENANTS = [
   'Nimbus Health (Fl 14)',
   'Delta Robotics (Fl 7)',
   'Kestrel Media (Fl 3)',
+  'Halcyon Freight (Fl 2)',
   'Building Operations',
 ] as const;
 
 export const PERMIT_TYPE_LABELS: Record<PermitType, string> = {
+  monthly: 'Monthly',
+  annual: 'Annual',
   executive: 'Executive',
-  tenant: 'Tenant',
+  overflow: 'Overflow',
   contractor: 'Contractor',
-  visitor: 'Visitor',
   valet: 'Valet',
+};
+
+export const VEHICLE_CLASS_LABELS: Record<VehicleClass, string> = {
+  sedan: 'Sedan',
+  suv: 'SUV',
+  pickup: 'Pickup',
+  van: 'Van',
+  ev: 'EV',
+  motorcycle: 'Motorcycle',
+};
+
+export const GATES: GateId[] = ['P1 Entry', 'P1 Exit', 'P2 Entry', 'P2 Exit', 'Commercial Dock'];
+
+export const EV_PRICING_DEFAULTS: EvPricing = {
+  l2PerKwh: 0.32,
+  dcfcPerKwh: 0.49,
+  sessionFee: 1.5,
+  idlePerMin: 0.1,
 };
 
 export interface DurationPreset {
@@ -57,6 +77,24 @@ export const DURATION_PRESETS: DurationPreset[] = [
   { label: '24 hr', minutes: 1440 },
 ];
 
+/** Typical weekday occupancy profile, used for peak-hour prediction. */
+export const HOURLY_OCCUPANCY_PROFILE: Array<{ hour: string; pct: number }> = [
+  { hour: '05', pct: 14 },
+  { hour: '06', pct: 31 },
+  { hour: '07', pct: 58 },
+  { hour: '08', pct: 82 },
+  { hour: '09', pct: 93 },
+  { hour: '10', pct: 96 },
+  { hour: '11', pct: 91 },
+  { hour: '12', pct: 88 },
+  { hour: '13', pct: 90 },
+  { hour: '14', pct: 84 },
+  { hour: '15', pct: 71 },
+  { hour: '16', pct: 55 },
+  { hour: '17', pct: 38 },
+  { hour: '18', pct: 22 },
+];
+
 /** Mock vehicles used to populate live gate events. */
 export const PLATE_POOL = [
   '7KJH221',
@@ -71,4 +109,20 @@ export const PLATE_POOL = [
   '8RFQ731',
   'MDS-1902',
   '5HLK268',
+  '2QFT771',
+  '8MJP303',
+  'WZX-9418',
+  'TRQ-2276',
+  '6KDY550',
+  '4PXM882',
+  '7HGD119',
+  'NJK-8841',
+  '2VRB637',
+  'MKT-1102',
+  'KPR-7714',
+  '4GHZ092',
+  '9WLT335',
+  'XXT-9087',
+  'QLB-2248',
+  'JDY-5013',
 ];

@@ -99,7 +99,7 @@ export function VisitorPassCard({ pass, now = Date.now(), className }: VisitorPa
         </header>
 
         <p className="mt-0.5 truncate text-xs text-slate-400">
-          {pass.code} · host: {pass.hostTenant}
+          {pass.code} · host: {pass.host}
         </p>
 
         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">

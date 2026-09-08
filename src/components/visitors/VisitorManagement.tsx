@@ -20,7 +20,7 @@ function seededPasses(): VisitorPass[] {
     {
       code: 'PL-K4TZ-9MQ2',
       guestName: 'Sarah Chen',
-      hostTenant: 'Nimbus Health (Fl 14)',
+      host: 'Nimbus Health (Fl 14)',
       plate: 'GDX-4451',
       level: 'L1',
       spot: 'A02',
@@ -31,7 +31,7 @@ function seededPasses(): VisitorPass[] {
     {
       code: 'PL-VB7X-2HD8',
       guestName: 'Marcus Webb',
-      hostTenant: 'Vertex Analytics (Fl 12)',
+      host: 'Vertex Analytics (Fl 12)',
       plate: 'MDS-1902',
       level: 'L1',
       spot: 'A04',
@@ -42,7 +42,7 @@ function seededPasses(): VisitorPass[] {
     {
       code: 'PL-JN3P-6WR5',
       guestName: 'Elena Ortiz',
-      hostTenant: 'Calloway & Roth LLP (Fl 9)',
+      host: 'Calloway & Roth LLP (Fl 9)',
       plate: '6ZPB554',
       level: 'L1',
       spot: 'A01',
@@ -57,7 +57,7 @@ export function VisitorManagement() {
   const { issuePass, passes, spots, now } = useRealtime();
 
   const [guestName, setGuestName] = React.useState('');
-  const [hostTenant, setHostTenant] = React.useState<string>(TENANTS[0]);
+  const [host, setHostTenant] = React.useState<string>(TENANTS[0]);
   const [plate, setPlate] = React.useState('');
   const [duration, setDuration] = React.useState(120);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -87,7 +87,8 @@ export function VisitorManagement() {
 
     issuePass({
       guestName: guestName.trim(),
-      hostTenant,
+      host,
+      validFrom: Date.now(),
       plate: plateCheck.normalized,
       level: target.level,
       spot: target.id.split('-')[1] ?? target.id,
@@ -139,7 +140,7 @@ export function VisitorManagement() {
             </label>
             <select
               id="host-tenant"
-              value={hostTenant}
+              value={host}
               onChange={(e) => setHostTenant(e.target.value)}
               className="h-10 w-full rounded border border-slate-700 bg-control-inset px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-signal-green"
             >

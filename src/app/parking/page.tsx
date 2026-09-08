@@ -13,7 +13,14 @@ export const metadata: Metadata = {
   description: 'Allocate bays, manage reserved blocks, and monitor live bay status.',
 };
 
-const PERMITS: PermitType[] = ['executive', 'tenant', 'contractor', 'visitor', 'valet'];
+const PERMIT_ZONE_RULES: Array<{ permit: PermitType; rule: string }> = [
+  { permit: 'monthly', rule: 'L2 zones C–E · overnight allowed' },
+  { permit: 'annual', rule: 'L2 reserved core · 24/7 access' },
+  { permit: 'executive', rule: 'L3 zone G · EV bays exempt' },
+  { permit: 'overflow', rule: 'L1 zones B–C · spill-over only' },
+  { permit: 'contractor', rule: 'L1 zone B · 07:00–17:00 windows' },
+  { permit: 'valet', rule: 'L1 zone C · valet key-keep lane' },
+];
 
 export default function ParkingAllocationsPage() {
   return (
@@ -45,13 +52,13 @@ export default function ParkingAllocationsPage() {
           Allocation Rules by Permit Type
         </h2>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {PERMITS.map((permit) => (
+          {PERMIT_ZONE_RULES.map(({ permit, rule }) => (
             <li
               key={permit}
-              className="flex items-center justify-between rounded border border-slate-800 bg-control px-3 py-2"
+              className="flex flex-col gap-1 rounded border border-slate-800 bg-control px-3 py-2"
             >
               <Badge tone={permit}>{PERMIT_TYPE_LABELS[permit]}</Badge>
-              <span className="text-xs text-slate-500">Zone-restricted · ANPR enforced</span>
+              <span className="text-xs text-slate-500">{rule}</span>
             </li>
           ))}
         </ul>

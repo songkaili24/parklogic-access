@@ -25,6 +25,7 @@ const kindMeta: Record<ActivityKind, { label: string; dotClass: string; textClas
   gate_hold: { label: 'HOLD', dotClass: 'bg-status-reserved', textClass: 'text-status-reserved' },
   alert_ack: { label: 'ACK', dotClass: 'bg-slate-500', textClass: 'text-slate-400' },
   allocation: { label: 'ALLOC', dotClass: 'bg-violet-400', textClass: 'text-violet-300' },
+  maintenance: { label: 'MAINT', dotClass: 'bg-orange-400', textClass: 'text-orange-300' },
 };
 
 export interface ActivityLogProps {

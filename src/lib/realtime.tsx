@@ -43,7 +43,7 @@ export interface RealtimeContextValue {
   now: number;
   acknowledgeAlert: (id: string) => void;
   raiseAlert: (severity: AlertSeverity, title: string, message: string, source: string) => void;
-  issuePass: (draft: Omit<VisitorPass, 'code' | 'status' | 'validFrom'>) => VisitorPass;
+  issuePass: (draft: Omit<VisitorPass, 'code' | 'status'>) => VisitorPass;
   toggleSpotStatus: (spotId: string) => void;
 }
 

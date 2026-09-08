@@ -43,16 +43,16 @@ function zoneType(zone: string): SpotType {
 /** Ramp-side spots in each zone run hot — realistic entry congestion. */
 const RAMP_ADJACENT = new Set([1, 8, 9, 16]);
 
-function permitFor(type: SpotType, zone: string): PermitType | undefined {
-  if (type === 'visitor') return 'visitor';
-  if (type === 'ev') return 'tenant';
-  if (type === 'accessible') return 'tenant';
+function permitFor(type: SpotType, zone: string, rng: () => number): PermitType | undefined {
+  if (type === 'visitor') return 'overflow';
+  if (type === 'ev') return 'monthly';
+  if (type === 'accessible') return 'monthly';
   if (zone === 'G' || zone === 'F') return 'executive';
-  if (zone === 'C' || zone === 'D') return 'tenant';
-  return Math.random() < 0.12 ? 'contractor' : 'tenant';
+  if (zone === 'C' || zone === 'D') return 'monthly';
+  return rng() < 0.12 ? 'contractor' : 'overflow';
 }
 
-function statusFor(type: SpotType, nearRamp: boolean): SpotStatus {
+function statusFor(type: SpotType, nearRamp: boolean, _rng: () => number): SpotStatus {
   if (type === 'ev') {
     const roll = Math.random();
     if (roll < 0.45) return 'charging';
@@ -67,7 +67,7 @@ function statusFor(type: SpotType, nearRamp: boolean): SpotStatus {
 }
 
 /** Deterministic-ish garage snapshot: 96 spots across L1–L3. */
-export function generateSpots(): ParkingSpot[] {
+export function generateSpots(_holders?: unknown[]): ParkingSpot[] {
   const spots: ParkingSpot[] = [];
   const plates = [...PLATE_POOL];
 
@@ -78,7 +78,7 @@ export function generateSpots(): ParkingSpot[] {
         const id = `${level}-${zone}${String(i).padStart(2, '0')}`;
         const type = zoneType(zone);
         const nearRamp = RAMP_ADJACENT.has(i);
-        const status = statusFor(type, nearRamp);
+        const status = statusFor(type, nearRamp, Math.random);
         const isActive = status === 'occupied' || status === 'charging' || status === 'reserved';
         spots.push({
           id,
@@ -86,7 +86,7 @@ export function generateSpots(): ParkingSpot[] {
           zone,
           status,
           type,
-          permit: permitFor(type, zone),
+          permit: permitFor(type, zone, Math.random),
           plate: isActive ? plates[(spots.length + i * 3) % plates.length] : undefined,
           occupiedSince: isActive
             ? Date.now() - Math.floor(Math.random() * 4 + 1) * 900_000

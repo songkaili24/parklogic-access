@@ -1,5 +1,7 @@
 'use client';
 
+import * as React from 'react';
+
 import type { ParkingSpot, SpotStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +52,22 @@ export interface ParkingSpotCellProps {
  * One bay in the lot grid. Purely presentational — status flows in from the
  * realtime store, so a WebSocket swap needs no change here.
  */
+/** Tracks updatedAt changes so a state change fires a one-shot pulse. */
+function useChangedPulse(updatedAt: number): string {
+  const prev = React.useRef<number | undefined>(undefined);
+  const [pulsing, setPulsing] = React.useState(false);
+  React.useEffect(() => {
+    if (prev.current !== undefined && updatedAt !== prev.current) {
+      setPulsing(true);
+      const timer = window.setTimeout(() => setPulsing(false), 1_200);
+      prev.current = updatedAt;
+      return () => window.clearTimeout(timer);
+    }
+    prev.current = updatedAt;
+  }, [updatedAt]);
+  return pulsing ? 'animate-state-pulse' : '';
+}
+
 export function ParkingSpotCell({
   spot,
   selected = false,
@@ -57,6 +75,7 @@ export function ParkingSpotCell({
   tabIndex,
   className,
 }: ParkingSpotCellProps) {
+  const pulseClass = useChangedPulse(spot.updatedAt);
   const label = `${spot.id} — ${spot.status}${spot.plate ? ` · ${spot.plate}` : ''}`;
 
   return (
@@ -73,6 +92,7 @@ export function ParkingSpotCell({
         statusClasses[spot.status],
         statusRing[spot.status],
         selected && 'outline outline-2 outline-offset-1 outline-white',
+        pulseClass,
         spot.status === 'offline' && 'cursor-not-allowed',
         className,
       )}

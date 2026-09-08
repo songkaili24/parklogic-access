@@ -61,9 +61,13 @@ export function ActivityLog({ events, max, showFooterMeta = false, className }: 
             <li
               key={event.id}
               className={cn(
-                'relative flex gap-3 pb-3',
+                'animate-log-entry relative flex gap-3 pb-3',
                 index !== visible.length - 1 && 'border-l border-slate-800',
               )}
+              style={{
+                animationDelay: `${Math.min(index, 8) * 50}ms`,
+                animationFillMode: 'backwards',
+              }}
             >
               <span
                 className={cn(

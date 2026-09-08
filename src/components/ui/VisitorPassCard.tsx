@@ -51,6 +51,7 @@ export function QrPlaceholder({ code, className }: { code: string; className?: s
       role="img"
       aria-label={`QR code for pass ${code}`}
       className={cn(
+        'animate-qr-reveal',
         'grid gap-px rounded bg-white p-1.5 [grid-template-columns:repeat(21,minmax(0,1fr))]',
         className,
       )}

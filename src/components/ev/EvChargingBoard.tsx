@@ -2,93 +2,41 @@
 
 import * as React from 'react';
 
-import type { ChargingStation } from '@/lib/types';
+import type { ChargingSession, ChargingStation } from '@/lib/types';
+import { HOURLY_OCCUPANCY_PROFILE } from '@/lib/constants';
 import { useRealtime } from '@/lib/realtime';
+import { cn, formatClock, relativeTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { IconBolt } from '@/components/ui/Icons';
+import { PricingPanel, StationCard } from '@/components/ev/EvStationCard';
 
-const STATIONS: ChargingStation[] = [
-  { id: 'EV-L3-F01', level: 'L3', zone: 'F', chargerType: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 84.2 },
-  { id: 'EV-L3-F02', level: 'L3', zone: 'F', chargerType: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 61.7 },
-  { id: 'EV-L3-F03', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 18.4 },
-  { id: 'EV-L3-F04', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 9.1 },
-  { id: 'EV-L3-F05', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 12.6 },
-  { id: 'EV-L3-F08', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'fault', kwhToday: 0, note: 'Connector latch jam' },
-];
-
-function StationCard({ station }: { station: ChargingStation }) {
-  const utilization = Math.round((station.portsInUse / station.ports) * 100);
-
-  return (
-    <article className="rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel">
-      <header className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-display text-sm font-semibold uppercase tracking-widest text-white">
-            {station.id}
-          </h3>
-          <p className="text-xs text-slate-500">
-            {station.chargerType} · {station.powerKw} kW · Level {station.level.replace('L', '')}
-          </p>
-        </div>
-        <Badge
-          tone={
-            station.status === 'available'
-              ? 'success'
-              : station.status === 'charging'
-                ? 'info'
-                : station.status === 'reserved'
-                  ? 'warning'
-                  : 'critical'
-          }
-          dot={station.status === 'charging'}
-        >
-          {station.status}
-        </Badge>
-      </header>
-
-      <div className="mt-3">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>Ports in use</span>
-          <span className="font-numeric">
-            {station.portsInUse}/{station.ports}
-          </span>
-        </div>
-        <div
-          role="meter"
-          aria-valuenow={utilization}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`${station.id} port utilization`}
-          className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-800"
-        >
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              utilization === 100 ? 'bg-status-reserved' : 'bg-status-charging'
-            }`}
-            style={{ width: `${utilization}%` }}
-          />
-        </div>
-      </div>
-
-      <footer className="mt-3 flex items-center justify-between">
-        <Badge tone="neutral">{station.kwhToday.toFixed(1)} kWh today</Badge>
-        <Button variant="outline" size="sm" disabled={station.status === 'fault'}>
-          Sessions
-        </Button>
-      </footer>
-    </article>
-  );
+function sessionCost(
+  session: ChargingSession,
+  station: ChargingStation | undefined,
+  l2: number,
+  dcfc: number,
+): number {
+  const rate = station?.chargerType === 'DC Fast Charge' ? dcfc : l2;
+  return session.kwhDelivered * rate;
 }
 
 export function EvChargingBoard() {
-  const { spots } = useRealtime();
-  const evBays = React.useMemo(() => spots.filter((s) => s.type === 'ev'), [spots]);
-  const activeSessions = evBays.filter((s) => s.status === 'charging').length;
-  const totalLoad = STATIONS.reduce(
-    (sum, s) => sum + (s.status !== 'fault' ? s.portsInUse * s.powerKw : 0),
+  const { stations, sessions, tickets, pricing, resolveTicket, now } = useRealtime();
+
+  const kwhTotal = stations.reduce((sum, station) => sum + station.kwhToday, 0);
+  const revenue = stations.reduce(
+    (sum, station) =>
+      sum +
+      station.kwhToday *
+        (station.chargerType === 'DC Fast Charge' ? pricing.dcfcPerKwh : pricing.l2PerKwh) +
+      station.portsInUse * pricing.sessionFee,
     0,
-  ).toFixed(1);
+  );
+  const openTickets = tickets.filter((ticket) => ticket.status !== 'resolved');
+  const peak = HOURLY_OCCUPANCY_PROFILE.reduce((best, entry) =>
+    entry.pct > best.pct ? entry : best,
+  );
 
   return (
     <div className="space-y-4">
@@ -99,70 +47,184 @@ export function EvChargingBoard() {
           </h3>
           <p className="mt-1 flex items-baseline gap-1">
             <span className="font-numeric font-display text-3xl font-semibold text-status-charging">
-              {activeSessions}
+              {sessions.length}
             </span>
-            <span className="inline-flex items-center text-sm text-slate-400">
-              <IconBolt className="animate-pulse-dot text-status-charging" />
-            </span>
+            <IconBolt className="animate-pulse-dot text-status-charging" />
           </p>
         </div>
         <div className="rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel">
           <h3 className="font-display text-xs uppercase tracking-widest text-slate-400">
-            Live Load
+            Energy Today
           </h3>
           <p className="mt-1">
             <span className="font-numeric font-display text-3xl font-semibold text-white">
-              {totalLoad}
+              {kwhTotal.toFixed(1)}
             </span>
-            <span className="text-sm text-slate-400"> kW</span>
+            <span className="text-sm text-slate-400"> kWh</span>
           </p>
         </div>
         <div className="rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel">
           <h3 className="font-display text-xs uppercase tracking-widest text-slate-400">
-            Banks Load-Shedding
+            Revenue Today
           </h3>
           <p className="mt-1">
-            <span className="font-numeric font-display text-3xl font-semibold text-status-reserved">
-              {STATIONS.filter((s) => s.status === 'reserved' || s.note !== undefined).length}
+            <span className="font-numeric font-display text-3xl font-semibold text-status-available">
+              ${revenue.toFixed(0)}
             </span>
-            <span className="text-sm text-slate-400"> / {STATIONS.length}</span>
           </p>
         </div>
         <div className="rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel">
           <h3 className="font-display text-xs uppercase tracking-widest text-slate-400">
-            Ports Offline
+            Open Faults
           </h3>
           <p className="mt-1">
-            <span className="font-numeric font-display text-3xl font-semibold text-slate-300">
-              {STATIONS.filter((s) => s.status === 'fault').reduce((sum, s) => sum + s.ports, 0)}
+            <span
+              className={cn(
+                'font-numeric font-display text-3xl font-semibold',
+                openTickets.length > 0 ? 'text-status-occupied' : 'text-slate-300',
+              )}
+            >
+              {openTickets.length}
             </span>
           </p>
         </div>
       </div>
 
-      <section aria-label="Charging stations" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-        {STATIONS.map((station) => (
+      <section aria-label="Charging stations" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+        {stations.map((station) => (
           <StationCard key={station.id} station={station} />
         ))}
       </section>
 
       <section
-        aria-label="EV bay status"
-        className="rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel"
+        aria-label="Active charging sessions"
+        className="overflow-x-auto rounded border border-slate-700/70 bg-control-raised shadow-panel"
       >
-        <h2 className="font-display text-sm uppercase tracking-widest text-slate-400">
-          EV Bay Status (live)
-        </h2>
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {evBays.map((bay) => (
-            <li key={bay.id}>
-              <Badge tone={bay.status} dot={bay.status === 'charging'}>
-                {bay.id}
-              </Badge>
-            </li>
-          ))}
-        </ul>
+        <header className="border-b border-slate-800 px-4 py-2.5">
+          <h2 className="font-display text-sm uppercase tracking-widest text-slate-400">
+            Active Charging Sessions
+          </h2>
+        </header>
+        <table className="w-full min-w-[44rem] text-left text-sm">
+          <caption className="sr-only">
+            Charging sessions with estimated completion and cost
+          </caption>
+          <thead>
+            <tr className="border-b border-slate-800 font-display text-xs uppercase tracking-widest text-slate-500">
+              <th scope="col" className="px-4 py-2">
+                Station
+              </th>
+              <th scope="col" className="px-4 py-2">
+                User
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Plate
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Started
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Delivered
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Est. done
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Running cost
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.map((session) => {
+              const station = stations.find((s) => s.id === session.stationId);
+              return (
+                <tr key={session.id} className="border-b border-slate-800/60 last:border-0">
+                  <td className="px-4 py-2 font-display tracking-wider text-slate-200">
+                    {session.stationId}
+                  </td>
+                  <td className="px-4 py-2 text-slate-100">{session.userName}</td>
+                  <td className="px-4 py-2 font-display tracking-wider text-slate-300">
+                    {session.plate}
+                  </td>
+                  <td className="font-numeric px-4 py-2 text-slate-400" suppressHydrationWarning>
+                    {formatClock(session.startedAt)} · {relativeTime(session.startedAt, now)}
+                  </td>
+                  <td className="font-numeric px-4 py-2 text-slate-200">
+                    {session.kwhDelivered}/{session.targetKwh} kWh
+                  </td>
+                  <td className="font-numeric px-4 py-2 text-slate-400">
+                    ~{formatClock(session.startedAt + session.estMinutes * 60_000)}
+                  </td>
+                  <td className="font-numeric px-4 py-2 text-status-available">
+                    $
+                    {sessionCost(session, station, pricing.l2PerKwh, pricing.dcfcPerKwh).toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
+            {sessions.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-slate-500">
+                  No active charging sessions.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </section>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <PricingPanel />
+
+        <section
+          aria-label="Maintenance queue"
+          className="rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel"
+        >
+          <h2 className="font-display text-sm uppercase tracking-widest text-slate-400">
+            Maintenance Queue
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Demand peaks {peak.pct}% around {peak.hour}:00 — resolve faults before the ramp.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {tickets.map((ticket) => (
+              <li
+                key={ticket.id}
+                className={cn(
+                  'flex items-start justify-between gap-3 rounded border px-3 py-2',
+                  ticket.status === 'resolved'
+                    ? 'border-slate-800 opacity-50'
+                    : ticket.severity === 'major'
+                      ? 'border-status-occupied/40 bg-status-occupied/5'
+                      : 'border-slate-800 bg-control',
+                )}
+              >
+                <div className="min-w-0">
+                  <p className="flex items-baseline gap-2 text-sm text-slate-100">
+                    <span className="font-numeric text-slate-500">{ticket.id}</span>
+                    {ticket.summary}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {ticket.stationId} ·{' '}
+                    <time
+                      dateTime={new Date(ticket.openedAt).toISOString()}
+                      suppressHydrationWarning
+                    >
+                      {relativeTime(ticket.openedAt, now)}
+                    </time>{' '}
+                    · {ticket.status.replace('_', ' ')}
+                  </p>
+                </div>
+                {ticket.status !== 'resolved' && (
+                  <Button variant="outline" size="sm" onClick={() => resolveTicket(ticket.id)}>
+                    Resolve
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }

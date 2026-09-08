@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { TENANTS } from '@/lib/constants';
 import { useRealtime } from '@/lib/realtime';
+import { findDuplicatePlate, validateUpload } from '@/lib/edge-cases';
 import { validatePlate } from '@/lib/validation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -40,7 +41,7 @@ export interface PassIssueFormProps {
  * notify the host; immediate arrivals activate at the lane.
  */
 export function PassIssueForm({ onIssued }: PassIssueFormProps) {
-  const { issuePass, spots } = useRealtime();
+  const { issuePass, spots, passes } = useRealtime();
 
   const [guestName, setGuestName] = React.useState('');
   const [company, setCompany] = React.useState('');
@@ -49,19 +50,38 @@ export function PassIssueForm({ onIssued }: PassIssueFormProps) {
   const [arrival, setArrival] = React.useState(() => toLocalInputValue(Date.now()));
   const [duration, setDuration] = React.useState(120);
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [idScan, setIdScan] = React.useState<File | null>(null);
+  const [idScanError, setIdScanError] = React.useState<string | null>(null);
 
   const visitorBays = React.useMemo(() => spots.filter((s) => s.type === 'visitor'), [spots]);
   const openVisitorBays = visitorBays.filter((s) => s.status === 'available');
 
   const handleIssue = (event: React.FormEvent) => {
     event.preventDefault();
+    const validFrom = new Date(arrival).getTime() || Date.now();
     const plateCheck = validatePlate(plate);
     if (!guestName.trim()) {
       setFormError('Visitor name is required for gate ANPR matching.');
       return;
     }
+    if (idScan) {
+      const scanCheck = validateUpload(idScan, 'vehicle_registration');
+      if (!scanCheck.valid) {
+        setFormError(scanCheck.error ?? 'ID scan failed validation.');
+        return;
+      }
+    }
     if (!plateCheck.valid) {
       setFormError(plateCheck.error ?? 'Plate failed validation.');
+      return;
+    }
+    const duplicate = findDuplicatePlate({
+      plate: plateCheck.normalized,
+      validFrom,
+      passes,
+    });
+    if (!duplicate.valid) {
+      setFormError(duplicate.error ?? 'Duplicate plate registration.');
       return;
     }
     if (openVisitorBays.length === 0) {
@@ -69,7 +89,6 @@ export function PassIssueForm({ onIssued }: PassIssueFormProps) {
       return;
     }
 
-    const validFrom = new Date(arrival).getTime() || Date.now();
     const pass = issuePass({
       guestName: guestName.trim(),
       company: company.trim() || undefined,
@@ -171,6 +190,31 @@ export function PassIssueForm({ onIssued }: PassIssueFormProps) {
           <Badge tone={openVisitorBays.length > 0 ? 'success' : 'critical'}>
             {openVisitorBays.length} / {visitorBays.length}
           </Badge>
+        </div>
+
+        <div>
+          <label
+            htmlFor="visitor-id-scan"
+            className="mb-1 block text-xs uppercase tracking-wider text-slate-500"
+          >
+            Driver license scan (PDF/JPEG/PNG)
+          </label>
+          <input
+            id="visitor-id-scan"
+            type="file"
+            accept="application/pdf,image/jpeg,image/png"
+            onChange={(e) => {
+              const selected = e.target.files?.[0] ?? null;
+              setIdScan(selected);
+              setIdScanError(null);
+            }}
+            className="w-full text-xs text-slate-400 file:mr-3 file:rounded file:border-0 file:bg-control-overlay file:px-3 file:py-1.5 file:font-display file:text-xs file:uppercase file:tracking-widest file:text-slate-200 hover:file:bg-slate-600/40"
+          />
+          {idScanError && (
+            <p role="alert" className="mt-1 text-xs text-status-occupied">
+              {idScanError}
+            </p>
+          )}
         </div>
 
         {formError && (

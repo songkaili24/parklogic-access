@@ -82,7 +82,11 @@ export function VisitorManagement() {
                             ? 'window elapsed'
                             : `${formatDuration(Math.round((pass.validUntil - now) / 60_000))} remaining`}
                       </span>
-                      <Button variant="outline" size="sm" onClick={() => setPrintCodes([pass.code])}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrintCodes([pass.code])}
+                      >
                         Print
                       </Button>
                     </div>

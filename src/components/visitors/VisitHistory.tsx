@@ -26,12 +26,24 @@ export function VisitHistory({ visits, max = 10 }: VisitHistoryProps) {
           <caption className="sr-only">Visitor check-in and check-out history</caption>
           <thead>
             <tr className="border-b border-slate-800 font-display text-xs uppercase tracking-widest text-slate-500">
-              <th scope="col" className="px-4 py-2">Visitor</th>
-              <th scope="col" className="px-4 py-2">Host</th>
-              <th scope="col" className="px-4 py-2">Plate</th>
-              <th scope="col" className="px-4 py-2">Check-in</th>
-              <th scope="col" className="px-4 py-2">Check-out</th>
-              <th scope="col" className="px-4 py-2">Dwell</th>
+              <th scope="col" className="px-4 py-2">
+                Visitor
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Host
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Plate
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Check-in
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Check-out
+              </th>
+              <th scope="col" className="px-4 py-2">
+                Dwell
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -42,18 +54,23 @@ export function VisitHistory({ visits, max = 10 }: VisitHistoryProps) {
                   <span className="block text-xs text-slate-500">{visit.company ?? '—'}</span>
                 </td>
                 <td className="px-4 py-2 text-slate-400">{visit.host}</td>
-                <td className="px-4 py-2 font-display tracking-wider text-slate-300">{visit.plate}</td>
-                <td className="px-4 py-2 font-numeric text-slate-400">
+                <td className="px-4 py-2 font-display tracking-wider text-slate-300">
+                  {visit.plate}
+                </td>
+                <td className="font-numeric px-4 py-2 text-slate-400">
                   <time dateTime={new Date(visit.checkIn).toISOString()} suppressHydrationWarning>
                     {formatClock(visit.checkIn)}
                   </time>
                 </td>
-                <td className="px-4 py-2 font-numeric text-slate-400">
-                  <time dateTime={new Date(visit.checkOut ?? visit.checkIn).toISOString()} suppressHydrationWarning>
+                <td className="font-numeric px-4 py-2 text-slate-400">
+                  <time
+                    dateTime={new Date(visit.checkOut ?? visit.checkIn).toISOString()}
+                    suppressHydrationWarning
+                  >
                     {visit.checkOut ? formatClock(visit.checkOut) : 'on site'}
                   </time>
                 </td>
-                <td className="px-4 py-2 font-numeric text-slate-400">
+                <td className="font-numeric px-4 py-2 text-slate-400">
                   {visit.checkOut
                     ? formatDuration(Math.round((visit.checkOut - visit.checkIn) / 60_000))
                     : '—'}

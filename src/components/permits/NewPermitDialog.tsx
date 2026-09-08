@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import type { PermitType, VehicleClass } from '@/lib/types';
 import { PERMIT_TYPE_LABELS, VEHICLE_CLASS_LABELS } from '@/lib/constants';
+import { validateCompanyEmail, validateUpload } from '@/lib/edge-cases';
 import { useRealtime } from '@/lib/realtime';
 import { validatePlate } from '@/lib/validation';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +22,8 @@ export function NewPermitDialog({ onClose }: { onClose: () => void }) {
   const [vehicle, setVehicle] = React.useState('');
   const [vehicleClass, setVehicleClass] = React.useState<VehicleClass>('sedan');
   const [plate, setPlate] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [registration, setRegistration] = React.useState<File | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const waitlistForType = waitlist.filter((entry) => entry.permitType === permitType);
@@ -44,7 +47,19 @@ export function NewPermitDialog({ onClose }: { onClose: () => void }) {
           onSubmit={(event) => {
             event.preventDefault();
             const plateCheck = validatePlate(plate);
+            const emailCheck = validateCompanyEmail(email);
             if (!name.trim()) return setError('Applicant name is required.');
+            if (!emailCheck.valid) return setError(emailCheck.error ?? 'Company email invalid.');
+            if (!registration || registration.size === 0) {
+              return setError(
+                'Vehicle registration document is required before a permit can issue.',
+              );
+            }
+            const registrationCheck = validateUpload(registration, 'vehicle_registration');
+            if (!registrationCheck.valid)
+              return setError(
+                registrationCheck.error ?? 'Registration document failed validation.',
+              );
             if (!vehicle.trim())
               return setError('Vehicle make/model is required for ANPR records.');
             if (!plateCheck.valid) return setError(plateCheck.error ?? 'Plate failed validation.');
@@ -152,10 +167,43 @@ export function NewPermitDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
+            <label
+              htmlFor="permit-email"
+              className="mb-1 block text-xs uppercase tracking-wider text-slate-500"
+            >
+              Company email
+            </label>
+            <input
+              id="permit-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="billing@vertexanalytics.com"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
             <span className="mb-1 block text-xs uppercase tracking-wider text-slate-500">
               License plate
             </span>
             <LicensePlateInput value={plate} onChange={setPlate} />
+          </div>
+
+          <div>
+            <label
+              htmlFor="permit-registration"
+              className="mb-1 block text-xs uppercase tracking-wider text-slate-500"
+            >
+              Vehicle registration (required)
+            </label>
+            <input
+              id="permit-registration"
+              type="file"
+              accept="application/pdf,image/jpeg,image/png"
+              onChange={(e) => setRegistration(e.target.files?.[0] ?? null)}
+              className="w-full text-xs text-slate-400 file:mr-3 file:rounded file:border-0 file:bg-control-overlay file:px-3 file:py-1.5 file:font-display file:text-xs file:uppercase file:tracking-widest file:text-slate-200 hover:file:bg-slate-600/40"
+            />
           </div>
 
           {error && (
@@ -202,4 +250,3 @@ export function NewPermitDialog({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
-

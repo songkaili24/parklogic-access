@@ -17,12 +17,12 @@ import {
 } from '@/components/ui/Icons';
 
 export const NAV_ITEMS = [
-  { href: '/', label: 'Live Dashboard', Icon: IconGrid },
+  { href: '/dashboard', label: 'Live Dashboard', Icon: IconGrid },
   { href: '/parking', label: 'Parking Allocations', Icon: IconParking },
   { href: '/visitors', label: 'Visitor Management', Icon: IconVisitor },
-  { href: '/ev-charging', label: 'EV Charging Stations', Icon: IconBolt },
+  { href: '/ev', label: 'EV Charging Stations', Icon: IconBolt },
   { href: '/permits', label: 'Permit Holders', Icon: IconBadge },
-  { href: '/access-logs', label: 'Access Logs', Icon: IconLogs },
+  { href: '/logs', label: 'Access Logs', Icon: IconLogs },
   { href: '/reports', label: 'Reports', Icon: IconChart },
 ] as const;
 

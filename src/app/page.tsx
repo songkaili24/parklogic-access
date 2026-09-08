@@ -1,11 +1,6 @@
-import { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { DashboardBody } from '@/components/dashboard/DashboardBody';
-
-export const metadata: Metadata = {
-  title: 'Live Dashboard',
-};
-
-export default function DashboardPage() {
-  return <DashboardBody />;
+/** Backward-compat redirect: the live dashboard moved to /dashboard. */
+export default function RootPage(): never {
+  redirect('/dashboard');
 }

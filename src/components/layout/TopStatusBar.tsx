@@ -200,7 +200,7 @@ export function TopStatusBar() {
 
   return (
     <header className="sticky top-0 z-40 flex h-12 items-center gap-3 border-b border-slate-800 bg-control/95 px-3 backdrop-blur sm:gap-4 sm:px-4">
-      <a href="/" className="flex items-center gap-2" aria-label="ParkLogic home">
+      <a href="/dashboard" className="flex items-center gap-2" aria-label="ParkLogic home">
         <IconGate className="text-xl text-signal-green" />
         <span className="font-display text-base font-bold uppercase tracking-widest text-white">
           Park<span className="text-signal-green">Logic</span>

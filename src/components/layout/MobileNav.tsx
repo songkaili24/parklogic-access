@@ -35,7 +35,7 @@ export function MobileNav() {
         );
       })}
       <Link
-        href="/access-logs"
+        href="/logs"
         aria-current={pathname === '/access-logs' || pathname === '/reports' ? 'page' : undefined}
         className={cn(
           'flex flex-col items-center gap-0.5 py-2 font-display text-[10px] uppercase tracking-wider',

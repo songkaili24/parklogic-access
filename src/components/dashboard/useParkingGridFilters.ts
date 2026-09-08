@@ -79,5 +79,14 @@ export function useParkingGridFilters({
       .filter((zoneSpots) => zoneSpots.length > 0);
   }, [levelSpots, levelMatches, filtersActive]);
 
-  return { query, permitFilter, classFilter, filtersActive, totalMatches, matches, visibleZoneSpots, setLevelIfMatching: setLevel };
+  return {
+    query,
+    permitFilter,
+    classFilter,
+    filtersActive,
+    totalMatches,
+    matches,
+    visibleZoneSpots,
+    setLevelIfMatching: setLevel,
+  };
 }

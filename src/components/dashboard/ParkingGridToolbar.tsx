@@ -98,17 +98,13 @@ export function ParkingGridToolbar({
       </select>
 
       {filtersActive && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onClear}
-        >
+        <Button variant="outline" size="sm" onClick={onClear}>
           Clear
         </Button>
       )}
 
       {levelStat && (
-        <span className="ml-auto font-numeric text-xs text-slate-500">
+        <span className="font-numeric ml-auto text-xs text-slate-500">
           {levelStat.occupied + levelStat.charging}/{levelStat.total} occupied · {levelStat.offline}{' '}
           offline
         </span>

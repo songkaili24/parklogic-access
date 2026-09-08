@@ -15,11 +15,31 @@ import { ParkingGridToolbar } from '@/components/dashboard/ParkingGridToolbar';
 import { useParkingGridFilters } from '@/components/dashboard/useParkingGridFilters';
 
 const LEGEND: Array<{ status: ParkingSpot['status']; label: string; className: string }> = [
-  { status: 'available', label: 'Available', className: 'border-status-available bg-status-available/40' },
-  { status: 'occupied', label: 'Occupied', className: 'border-status-occupied bg-status-occupied/40' },
-  { status: 'reserved', label: 'Reserved', className: 'border-status-reserved bg-status-reserved/40' },
-  { status: 'charging', label: 'EV Charging', className: 'border-status-charging bg-status-charging/60' },
-  { status: 'offline', label: 'Disabled / Maintenance', className: 'border-dashed border-slate-600' },
+  {
+    status: 'available',
+    label: 'Available',
+    className: 'border-status-available bg-status-available/40',
+  },
+  {
+    status: 'occupied',
+    label: 'Occupied',
+    className: 'border-status-occupied bg-status-occupied/40',
+  },
+  {
+    status: 'reserved',
+    label: 'Reserved',
+    className: 'border-status-reserved bg-status-reserved/40',
+  },
+  {
+    status: 'charging',
+    label: 'EV Charging',
+    className: 'border-status-charging bg-status-charging/60',
+  },
+  {
+    status: 'offline',
+    label: 'Disabled / Maintenance',
+    className: 'border-dashed border-slate-600',
+  },
 ];
 
 type RovingNav = 'next' | 'prev' | 'down' | 'up' | 'first' | 'last';
@@ -145,7 +165,9 @@ export function ParkingGrid({ className }: { className?: string }) {
               )}
             >
               {stat.level}
-              <span className="ml-1.5 font-numeric text-[10px] text-slate-500">{stat.available}</span>
+              <span className="font-numeric ml-1.5 text-[10px] text-slate-500">
+                {stat.available}
+              </span>
             </button>
           ))}
         </nav>
@@ -216,7 +238,10 @@ export function ParkingGrid({ className }: { className?: string }) {
             >
               {LEGEND.map(({ status, label, className: swatch }) => (
                 <li key={status} className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <span className={cn('h-2.5 w-2.5 rounded-sm border', swatch)} aria-hidden="true" />
+                  <span
+                    className={cn('h-2.5 w-2.5 rounded-sm border', swatch)}
+                    aria-hidden="true"
+                  />
                   {label}
                 </li>
               ))}

@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import type { ChargingStation } from '@/lib/types';
 import { useRealtime } from '@/lib/realtime';
-import { formatClock } from '@/lib/utils';
+import { cn, formatClock } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { IconCheck } from '@/components/ui/Icons';
@@ -25,7 +25,16 @@ export function StationCard({ station }: { station: ChargingStation }) {
           : 'warning';
 
   return (
-    <article className="flex flex-col rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel">
+    <article
+      className={cn(
+        'flex flex-col rounded border bg-control-raised p-4 shadow-panel',
+        station.status === 'charging'
+          ? 'animate-glow-charge border-status-charging/50'
+          : station.status === 'fault'
+            ? 'border-status-occupied/50'
+            : 'border-slate-700/70',
+      )}
+    >
       <header className="flex items-start justify-between gap-2">
         <div>
           <h3 className="font-display text-sm font-semibold uppercase tracking-widest text-white">
@@ -175,4 +184,3 @@ export function PricingPanel() {
     </section>
   );
 }
-

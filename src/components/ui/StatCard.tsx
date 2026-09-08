@@ -107,6 +107,19 @@ export function StatsRow({ summary }: OccupancyStatsProps) {
         live
       />
       <StatCard
+        label="Total Spaces"
+        value={summary.total}
+        accent="slate"
+        hint="In service + offline"
+      />
+      <StatCard
+        label="Occupied"
+        value={summary.occupied}
+        accent="red"
+        hint="Vehicles parked"
+        live
+      />
+      <StatCard
         label="Available"
         value={summary.available}
         unit="bays"
@@ -128,13 +141,6 @@ export function StatsRow({ summary }: OccupancyStatsProps) {
         accent="blue"
         hint="Ports drawing load"
         live
-      />
-      <StatCard
-        label="Offline Bays"
-        value={summary.offline}
-        unit="sensors"
-        accent="slate"
-        hint="Flagged for maintenance"
       />
     </div>
   );

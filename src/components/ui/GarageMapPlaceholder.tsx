@@ -94,7 +94,7 @@ export function GarageMapPlaceholder({
 
       <div className="bg-blueprint p-4">
         <svg
-          viewBox="0 0 460 {zones.length * 22 + 40}"
+          viewBox={`0 0 460 ${zones.length * 22 + 40}`}
           role="img"
           aria-label={`Schematic of ${active?.label ?? 'garage level'}`}
           className="h-auto w-full"

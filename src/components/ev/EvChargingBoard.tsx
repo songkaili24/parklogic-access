@@ -9,72 +9,12 @@ import { Button } from '@/components/ui/Button';
 import { IconBolt } from '@/components/ui/Icons';
 
 const STATIONS: ChargingStation[] = [
-  {
-    id: 'EV-L3-F01',
-    level: 'L3',
-    zone: 'F',
-    network: 'DC Fast Charge',
-    powerKw: 150,
-    ports: 2,
-    portsInUse: 1,
-    status: 'online',
-    loadShed: false,
-  },
-  {
-    id: 'EV-L3-F04',
-    level: 'L3',
-    zone: 'F',
-    network: 'AC Level 2',
-    powerKw: 11,
-    ports: 4,
-    portsInUse: 3,
-    status: 'online',
-    loadShed: true,
-  },
-  {
-    id: 'EV-L1-F02',
-    level: 'L1',
-    zone: 'F',
-    network: 'AC Level 2',
-    powerKw: 11,
-    ports: 4,
-    portsInUse: 2,
-    status: 'online',
-    loadShed: false,
-  },
-  {
-    id: 'EV-L1-F05',
-    level: 'L1',
-    zone: 'F',
-    network: 'AC Level 2',
-    powerKw: 7.2,
-    ports: 2,
-    portsInUse: 0,
-    status: 'degraded',
-    loadShed: false,
-  },
-  {
-    id: 'EV-L2-F01',
-    level: 'L2',
-    zone: 'F',
-    network: 'AC Level 2',
-    powerKw: 11,
-    ports: 4,
-    portsInUse: 4,
-    status: 'online',
-    loadShed: true,
-  },
-  {
-    id: 'EV-L2-F06',
-    level: 'L2',
-    zone: 'F',
-    network: 'DC Fast Charge',
-    powerKw: 50,
-    ports: 1,
-    portsInUse: 0,
-    status: 'offline',
-    loadShed: false,
-  },
+  { id: 'EV-L3-F01', level: 'L3', zone: 'F', chargerType: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 84.2 },
+  { id: 'EV-L3-F02', level: 'L3', zone: 'F', chargerType: 'DC Fast Charge', powerKw: 150, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 61.7 },
+  { id: 'EV-L3-F03', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 1, status: 'charging', kwhToday: 18.4 },
+  { id: 'EV-L3-F04', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 9.1 },
+  { id: 'EV-L3-F05', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'available', kwhToday: 12.6 },
+  { id: 'EV-L3-F08', level: 'L3', zone: 'F', chargerType: 'Level 2', powerKw: 11, ports: 1, portsInUse: 0, status: 'fault', kwhToday: 0, note: 'Connector latch jam' },
 ];
 
 function StationCard({ station }: { station: ChargingStation }) {
@@ -88,18 +28,20 @@ function StationCard({ station }: { station: ChargingStation }) {
             {station.id}
           </h3>
           <p className="text-xs text-slate-500">
-            {station.network} · {station.powerKw} kW · Level {station.level.replace('L', '')}
+            {station.chargerType} · {station.powerKw} kW · Level {station.level.replace('L', '')}
           </p>
         </div>
         <Badge
           tone={
-            station.status === 'online'
+            station.status === 'available'
               ? 'success'
-              : station.status === 'degraded'
-                ? 'warning'
-                : 'offline'
+              : station.status === 'charging'
+                ? 'info'
+                : station.status === 'reserved'
+                  ? 'warning'
+                  : 'critical'
           }
-          dot={station.status === 'online'}
+          dot={station.status === 'charging'}
         >
           {station.status}
         </Badge>
@@ -130,12 +72,8 @@ function StationCard({ station }: { station: ChargingStation }) {
       </div>
 
       <footer className="mt-3 flex items-center justify-between">
-        {station.loadShed ? (
-          <Badge tone="warning">Load shed 7.2 kW cap</Badge>
-        ) : (
-          <Badge tone="neutral">Full power</Badge>
-        )}
-        <Button variant="outline" size="sm" disabled={station.status === 'offline'}>
+        <Badge tone="neutral">{station.kwhToday.toFixed(1)} kWh today</Badge>
+        <Button variant="outline" size="sm" disabled={station.status === 'fault'}>
           Sessions
         </Button>
       </footer>
@@ -148,7 +86,7 @@ export function EvChargingBoard() {
   const evBays = React.useMemo(() => spots.filter((s) => s.type === 'ev'), [spots]);
   const activeSessions = evBays.filter((s) => s.status === 'charging').length;
   const totalLoad = STATIONS.reduce(
-    (sum, s) => sum + (s.status !== 'offline' ? s.portsInUse * s.powerKw : 0),
+    (sum, s) => sum + (s.status !== 'fault' ? s.portsInUse * s.powerKw : 0),
     0,
   ).toFixed(1);
 
@@ -185,7 +123,7 @@ export function EvChargingBoard() {
           </h3>
           <p className="mt-1">
             <span className="font-numeric font-display text-3xl font-semibold text-status-reserved">
-              {STATIONS.filter((s) => s.loadShed && s.status !== 'offline').length}
+              {STATIONS.filter((s) => s.status === 'reserved' || s.note !== undefined).length}
             </span>
             <span className="text-sm text-slate-400"> / {STATIONS.length}</span>
           </p>
@@ -196,7 +134,7 @@ export function EvChargingBoard() {
           </h3>
           <p className="mt-1">
             <span className="font-numeric font-display text-3xl font-semibold text-slate-300">
-              {STATIONS.filter((s) => s.status === 'offline').reduce((sum, s) => sum + s.ports, 0)}
+              {STATIONS.filter((s) => s.status === 'fault').reduce((sum, s) => sum + s.ports, 0)}
             </span>
           </p>
         </div>

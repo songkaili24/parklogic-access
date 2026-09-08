@@ -10,7 +10,7 @@ export interface VisitHistoryProps {
 }
 
 /** Check-in/check-out log for past visitor arrivals. */
-export function VisitHistory({ visits, now, max = 10 }: VisitHistoryProps) {
+export function VisitHistory({ visits, max = 10 }: VisitHistoryProps) {
   return (
     <section
       aria-label="Visitor history log"

@@ -45,3 +45,20 @@
     background: transparent;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-pass-area,
+  .print-pass-area * {
+    visibility: visible;
+  }
+  .print-pass-area {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    gap: 1rem;
+    padding: 2rem;
+  }
+}

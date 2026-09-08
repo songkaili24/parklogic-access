@@ -14,7 +14,7 @@ export default function PermitHoldersPage() {
     <div className="space-y-4">
       <PageHeader
         title="Permit Holders"
-        subtitle="Registry of tenant, executive, contractor, and valet permits with bay assignments."
+        subtitle="Registry of monthly, annual, executive, and overflow permits with renewals, waitlist, and CSV export."
         actions={
           <Button variant="secondary" size="sm">
             Import Roster

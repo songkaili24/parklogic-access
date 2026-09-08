@@ -36,10 +36,10 @@ export function MobileNav() {
       })}
       <Link
         href="/logs"
-        aria-current={pathname === '/access-logs' || pathname === '/reports' ? 'page' : undefined}
+        aria-current={pathname === '/logs' || pathname === '/reports' ? 'page' : undefined}
         className={cn(
           'flex flex-col items-center gap-0.5 py-2 font-display text-[10px] uppercase tracking-wider',
-          pathname === '/access-logs' || pathname === '/reports'
+          pathname === '/logs' || pathname === '/reports'
             ? 'text-signal-green'
             : 'text-slate-500',
         )}

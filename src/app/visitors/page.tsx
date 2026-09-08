@@ -13,7 +13,7 @@ export default function VisitorManagementPage() {
     <div className="space-y-4">
       <PageHeader
         title="Visitor Management"
-        subtitle="Generate QR passes, assign visitor bays, and monitor active guest windows."
+        subtitle="Issue and pre-register QR passes, run event bulk generation, and audit visitor history."
       />
       <VisitorManagement />
     </div>

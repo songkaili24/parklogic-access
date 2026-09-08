@@ -186,3 +186,97 @@ export interface OccupancySummary {
   offline: number;
   occupancyRate: number;
 }
+
+/* ------------------------------------------------------------------ */
+/* Hardware monitoring                                                */
+/* ------------------------------------------------------------------ */
+
+export type DeviceKind =
+  | 'gate_controller'
+  | 'anpr_camera'
+  | 'sensor_hub'
+  | 'pay_station'
+  | 'kiosk'
+  | 'ev_controller'
+  | 'signage';
+
+export type DeviceStatus = 'online' | 'degraded' | 'offline' | 'maintenance';
+
+export interface DeviceError {
+  at: number;
+  message: string;
+}
+
+export interface HardwareDevice {
+  id: string;
+  name: string;
+  kind: DeviceKind;
+  location: string;
+  status: DeviceStatus;
+  firmware: string;
+  uptimePct: number;
+  lastMaintenanceAt: number;
+  lastError?: DeviceError;
+  /** Set when a reboot is issued; the tick brings the device back online. */
+  rebootRequestedAt?: number;
+  note?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Violations                                                         */
+/* ------------------------------------------------------------------ */
+
+export type ParkingViolationKind =
+  'unauthorized_parking' | 'overtime' | 'expired_permit' | 'fire_lane' | 'improper_use';
+
+export type ViolationStatus = 'open' | 'contested' | 'upheld' | 'dismissed' | 'paid';
+
+export interface ViolationAppeal {
+  submittedAt: number;
+  statement: string;
+  /** File name of the uploaded supporting evidence. */
+  evidenceFileName?: string;
+  status: 'pending' | 'approved' | 'denied';
+}
+
+export interface Violation {
+  id: string;
+  code: string;
+  plate: string;
+  spot?: string;
+  kind: ParkingViolationKind;
+  status: ViolationStatus;
+  /** ANPR snapshot reference — evidence placeholder renders from this. */
+  evidenceRef: string;
+  fineCents: number;
+  issuedAt: number;
+  issuedBy: string;
+  detail?: string;
+  appeal?: ViolationAppeal;
+  resolvedAt?: number;
+}
+
+/* ------------------------------------------------------------------ */
+/* Billing                                                            */
+/* ------------------------------------------------------------------ */
+
+export type InvoiceStatus = 'draft' | 'sent' | 'overdue' | 'paid';
+
+export interface InvoiceLineItem {
+  description: string;
+  amountCents: number;
+}
+
+export interface Invoice {
+  id: string;
+  holderId: string;
+  holderName: string;
+  holderCompany: string;
+  /** Billing period, e.g. 2026-09. */
+  period: string;
+  lineItems: InvoiceLineItem[];
+  status: InvoiceStatus;
+  issuedAt: number;
+  dueAt: number;
+  paidAt?: number;
+}

@@ -65,6 +65,27 @@ export function AccessLogExplorer() {
 
   const violations = filtered.filter((event) => event.violation).length;
 
+  const exportCsv = () => {
+    const from = new Date(`${exportFrom}T00:00:00`).getTime();
+    const to = new Date(`${exportTo}T23:59:59`).getTime();
+    const rows = filtered
+      .filter((event) => event.timestamp >= from && event.timestamp <= to)
+      .map((event) => [
+        new Date(event.timestamp).toISOString(),
+        EVENT_LABELS[event.eventType],
+        event.plate,
+        event.gate,
+        event.result,
+        event.violation ? VIOLATION_LABELS[event.violation] : '',
+        event.detail ?? '',
+      ]);
+    downloadCsv(
+      `parklogic-gate-log-${exportFrom}-to-${exportTo}.csv`,
+      ['Timestamp', 'Event', 'Plate', 'Gate', 'Result', 'Violation', 'Detail'],
+      rows,
+    );
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +275,47 @@ export function AccessLogExplorer() {
         </table>
       </div>
 
-
+      <section
+        aria-label="Export log"
+        className="flex flex-wrap items-end gap-3 rounded border border-slate-700/70 bg-control-raised p-4 shadow-panel"
+      >
+        <div>
+          <label
+            htmlFor="export-from"
+            className="mb-1 block text-xs uppercase tracking-wider text-slate-500"
+          >
+            Export from
+          </label>
+          <input
+            id="export-from"
+            type="date"
+            value={exportFrom}
+            onChange={(e) => setExportFrom(e.target.value)}
+            className="font-numeric h-9 rounded border border-slate-700 bg-control-inset px-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-signal-green"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="export-to"
+            className="mb-1 block text-xs uppercase tracking-wider text-slate-500"
+          >
+            To
+          </label>
+          <input
+            id="export-to"
+            type="date"
+            value={exportTo}
+            onChange={(e) => setExportTo(e.target.value)}
+            className="font-numeric h-9 rounded border border-slate-700 bg-control-inset px-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-signal-green"
+          />
+        </div>
+        <Button variant="secondary" size="sm" onClick={exportCsv}>
+          Export CSV
+        </Button>
+        <p className="ml-auto text-xs text-slate-500">
+          Exports the {filtered.length} events currently matching the filters.
+        </p>
+      </section>
     </div>
   );
 }

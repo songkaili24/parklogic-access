@@ -79,6 +79,7 @@ export interface RealtimeContextValue {
   alerts: SystemAlert[];
   summary: OccupancySummary;
   passes: VisitorPass[];
+  waitlist: WaitlistEntry[];
   /** Ticking wall clock used for relative timestamps. */
   now: number;
   acknowledgeAlert: (id: string) => void;

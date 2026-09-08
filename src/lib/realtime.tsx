@@ -19,6 +19,11 @@ import type {
   VisitorPass,
   VisitorVisit,
   WaitlistEntry,
+  HardwareDevice,
+  Invoice,
+  Violation as ParkingViolation,
+  ViolationAppeal,
+  ViolationStatus,
 } from '@/lib/types';
 import { summarizeOccupancy } from '@/lib/occupancy';
 import { EV_PRICING_DEFAULTS, PLATE_POOL } from '@/lib/constants';
@@ -35,6 +40,9 @@ import {
   generateVisitHistory,
   generateVisitorPasses,
   generateWaitlist,
+  generateDevices,
+  generateViolations,
+  generateInvoices,
   LEVELS,
   ZONES,
 } from '@/lib/seed';
@@ -103,11 +111,29 @@ export interface RealtimeContextValue {
   updatePricing: (patch: Partial<EvPricing>) => void;
   reportStationFault: (stationId: string, summary: string) => void;
   resolveTicket: (ticketId: string) => void;
+  devices: HardwareDevice[];
+  violations: ParkingViolation[];
+  invoices: Invoice[];
+  /** Bay ids whose status changed within the pulse window. */
+  recentlyChanged: string[];
+  requestReboot: (deviceId: string) => void;
+  acknowledgeDeviceError: (deviceId: string) => void;
+  submitAppeal: (violationId: string, statement: string, evidenceFileName?: string) => void;
+  resolveViolation: (violationId: string, status: ViolationStatus) => void;
+  issueInvoice: (input: {
+    holderId: string;
+    holderName: string;
+    holderCompany: string;
+    period: string;
+    lineItems: Invoice['lineItems'];
+  }) => Invoice;
+  markInvoicePaid: (invoiceId: string) => void;
 }
 
 const RealtimeContext = React.createContext<RealtimeContextValue | null>(null);
 
 const SIM_TICK_MS = 5_000;
+const PULSE_WINDOW_MS = 4_000;
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [connection, setConnection] = React.useState<ConnectionStatus>('connecting');
@@ -123,9 +149,15 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [pricing, setPricing] = React.useState<EvPricing>(EV_PRICING_DEFAULTS);
   const [gateEvents, setGateEvents] = React.useState<GateEvent[]>([]);
   const [waitlist, setWaitlist] = React.useState<WaitlistEntry[]>([]);
+  const [devices, setDevices] = React.useState<HardwareDevice[]>([]);
+  const [violations, setViolations] = React.useState<ParkingViolation[]>([]);
+  const [invoices, setInvoices] = React.useState<Invoice[]>([]);
+  /** Ids of spots whose status changed recently — drives the grid pulse. */
+  const [recentlyChanged, setRecentlyChanged] = React.useState<string[]>([]);
   const [now, setNow] = React.useState(() => Date.now());
 
   const spotsRef = React.useRef<ParkingSpot[]>([]);
+  const recentlyChangedAt = React.useRef<Map<string, number>>(new Map());
   const sessionsRef = React.useRef<ChargingSession[]>([]);
   const stationsRef = React.useRef<ChargingStation[]>([]);
   React.useEffect(() => {
@@ -152,6 +184,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       setTickets(generateTickets());
       setGateEvents(generateGateEvents());
       setWaitlist(generateWaitlist());
+      setDevices(generateDevices());
+      setViolations(generateViolations());
+      setInvoices(generateInvoices());
       setActivity(generateInitialEvents());
       setAlerts(generateInitialAlerts());
       setConnection('syncing');
@@ -169,8 +204,16 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   const patchSpot = React.useCallback((spotId: string, patch: Partial<ParkingSpot>) => {
     setSpots((prev) =>
-      prev.map((spot) => (spot.id === spotId ? { ...spot, ...patch, updatedAt: Date.now() } : spot)),
+      prev.map((spot) =>
+        spot.id === spotId ? { ...spot, ...patch, updatedAt: Date.now() } : spot,
+      ),
     );
+    const now = Date.now();
+    setRecentlyChanged((prev) => [
+      ...prev.filter((id) => now - recentlyChangedAt.current.get(id)! < PULSE_WINDOW_MS),
+      spotId,
+    ]);
+    recentlyChangedAt.current.set(spotId, now);
   }, []);
 
   const nextVisitorBay = React.useCallback((): string => {
@@ -304,6 +347,29 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     }, SIM_TICK_MS);
     return () => window.clearInterval(interval);
   }, [connection, pushActivity, patchSpot]);
+
+  // Reboot recovery — devices return to online after the reboot window.
+  React.useEffect(() => {
+    if (devices.length === 0) return;
+    const rebooting = devices.some((device) => device.rebootRequestedAt);
+    if (!rebooting) return;
+    const timer = window.setTimeout(() => {
+      setDevices((prev) =>
+        prev.map((device) =>
+          device.rebootRequestedAt && Date.now() - device.rebootRequestedAt >= 20_000
+            ? {
+                ...device,
+                rebootRequestedAt: undefined,
+                status: 'online',
+                lastError: undefined,
+                note: 'Rebooted — health checks passed',
+              }
+            : device,
+        ),
+      );
+    }, 21_000);
+    return () => window.clearTimeout(timer);
+  }, [devices]);
 
   // Clock tick for relative timestamps and the status-bar clock.
   React.useEffect(() => {
@@ -517,11 +583,14 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     [patchSpot, pushActivity],
   );
 
-  const toggleGateEventFlag = React.useCallback<RealtimeContextValue['toggleGateEventFlag']>((eventId) => {
-    setGateEvents((prev) =>
-      prev.map((event) => (event.id === eventId ? { ...event, flagged: !event.flagged } : event)),
-    );
-  }, []);
+  const toggleGateEventFlag = React.useCallback<RealtimeContextValue['toggleGateEventFlag']>(
+    (eventId) => {
+      setGateEvents((prev) =>
+        prev.map((event) => (event.id === eventId ? { ...event, flagged: !event.flagged } : event)),
+      );
+    },
+    [],
+  );
 
   const addToWaitlist = React.useCallback<RealtimeContextValue['addToWaitlist']>((entry) => {
     setWaitlist((prev) => [
@@ -568,7 +637,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         },
         ...prev,
       ]);
-      raiseAlert('critical', `Charger fault — ${stationId}`, summary, 'EV Network / Operator Report');
+      raiseAlert(
+        'critical',
+        `Charger fault — ${stationId}`,
+        summary,
+        'EV Network / Operator Report',
+      );
       pushActivity({
         id: uid('evt'),
         timestamp: Date.now(),
@@ -606,6 +680,132 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     [pushActivity, tickets],
   );
 
+  const requestReboot = React.useCallback<RealtimeContextValue['requestReboot']>(
+    (deviceId) => {
+      setDevices((prev) =>
+        prev.map((device) =>
+          device.id === deviceId
+            ? {
+                ...device,
+                rebootRequestedAt: Date.now(),
+                status: device.status === 'offline' ? 'offline' : 'maintenance',
+              }
+            : device,
+        ),
+      );
+      pushActivity({
+        id: uid('evt'),
+        timestamp: Date.now(),
+        kind: 'maintenance',
+        message: `Reboot issued to ${deviceId} — health checks in 20s`,
+        actor: 'Hardware Console',
+        spot: deviceId,
+      });
+    },
+    [pushActivity],
+  );
+
+  const acknowledgeDeviceError = React.useCallback<RealtimeContextValue['acknowledgeDeviceError']>(
+    (deviceId) => {
+      setDevices((prev) =>
+        prev.map((device) =>
+          device.id === deviceId ? { ...device, lastError: undefined } : device,
+        ),
+      );
+    },
+    [],
+  );
+
+  const submitAppeal = React.useCallback<RealtimeContextValue['submitAppeal']>(
+    (violationId, statement, evidenceFileName) => {
+      const violation = violations.find((v) => v.id === violationId);
+      const appeal: ViolationAppeal = {
+        submittedAt: Date.now(),
+        statement,
+        evidenceFileName,
+        status: 'pending',
+      };
+      setViolations((prev) =>
+        prev.map((v) => (v.id === violationId ? { ...v, status: 'contested', appeal } : v)),
+      );
+      pushActivity({
+        id: uid('evt'),
+        timestamp: Date.now(),
+        kind: 'alert_ack',
+        message: `Appeal filed on ${violation?.code ?? 'citation'} — ${violation?.plate ?? ''}`,
+        actor: 'Permits Desk',
+        spot: violation?.spot,
+      });
+    },
+    [pushActivity, violations],
+  );
+
+  const resolveViolation = React.useCallback<RealtimeContextValue['resolveViolation']>(
+    (violationId, status) => {
+      setViolations((prev) =>
+        prev.map((v) =>
+          v.id === violationId
+            ? {
+                ...v,
+                status: status as ViolationStatus,
+                resolvedAt: Date.now(),
+                appeal: v.appeal
+                  ? { ...v.appeal, status: status === 'dismissed' ? 'approved' : 'denied' }
+                  : v.appeal,
+              }
+            : v,
+        ),
+      );
+      const violation = violations.find((v) => v.id === violationId);
+      pushActivity({
+        id: uid('evt'),
+        timestamp: Date.now(),
+        kind: 'alert_ack',
+        message: `Citation ${violation?.code ?? violationId} marked ${status.replace('_', ' ')}`,
+        actor: 'Enforcement Desk',
+      });
+    },
+    [pushActivity, violations],
+  );
+
+  const issueInvoice = React.useCallback<RealtimeContextValue['issueInvoice']>(
+    (input) => {
+      const now = Date.now();
+      const invoice: Invoice = {
+        id: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
+        holderId: input.holderId,
+        holderName: input.holderName,
+        holderCompany: input.holderCompany,
+        period: input.period,
+        lineItems: input.lineItems,
+        status: 'draft',
+        issuedAt: now,
+        dueAt: now + 21 * 86_400_000,
+      };
+      setInvoices((prev) => [invoice, ...prev]);
+      pushActivity({
+        id: uid('evt'),
+        timestamp: Date.now(),
+        kind: 'allocation',
+        message: `Invoice ${invoice.id} generated for ${input.holderName} (${input.period})`,
+        actor: 'Billing',
+      });
+      return invoice;
+    },
+    [pushActivity],
+  );
+
+  const markInvoicePaid = React.useCallback<RealtimeContextValue['markInvoicePaid']>(
+    (invoiceId) => {
+      setInvoices((prev) =>
+        prev.map((invoice) =>
+          invoice.id === invoiceId ? { ...invoice, status: 'paid', paidAt: Date.now() } : invoice,
+        ),
+      );
+    },
+    [],
+  );
+
   const summary = React.useMemo(() => summarizeOccupancy(spots), [spots]);
 
   const value = React.useMemo(
@@ -621,6 +821,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       pricing,
       gateEvents,
       waitlist,
+      devices,
+      violations,
+      invoices,
+      recentlyChanged,
       activity,
       alerts,
       summary,
@@ -638,6 +842,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       updatePricing,
       reportStationFault,
       resolveTicket,
+      requestReboot,
+      acknowledgeDeviceError,
+      submitAppeal,
+      resolveViolation,
+      issueInvoice,
+      markInvoicePaid,
     }),
     [
       connection,
@@ -651,6 +861,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       pricing,
       gateEvents,
       waitlist,
+      devices,
+      violations,
+      invoices,
+      recentlyChanged,
       activity,
       alerts,
       summary,
@@ -668,6 +882,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       updatePricing,
       reportStationFault,
       resolveTicket,
+      requestReboot,
+      acknowledgeDeviceError,
+      submitAppeal,
+      resolveViolation,
+      issueInvoice,
+      markInvoicePaid,
     ],
   );
 

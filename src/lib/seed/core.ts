@@ -30,8 +30,9 @@ export const ZONE_SIZE: Record<string, number> = {
 
 export function zoneSize(level: LevelId, zone: string): number {
   return (
-    ZONE_SIZE[level === 'L2' && zone === 'C' ? 'C2' : level === 'L1' && zone === 'C' ? 'C1' : zone] ??
-    12
+    ZONE_SIZE[
+      level === 'L2' && zone === 'C' ? 'C2' : level === 'L1' && zone === 'C' ? 'C1' : zone
+    ] ?? 12
   );
 }
 

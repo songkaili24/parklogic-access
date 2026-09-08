@@ -8,7 +8,12 @@ export function generateInitialEvents(): ActivityEvent[] {
     [12_500, 'pass_issued', 'Visitor pass issued to Sarah Chen', 'Front desk', 'L1-A01'],
     [21_000, 'exit', 'Ticket validated — tenant exit at P2', '4TRN890'],
     [34_000, 'charge_started', 'Charging session started on EV-L3-F01', '7KJH221', 'L3-F01'],
-    [47_000, 'allocation', 'Overflow block L1-A06…A10 opened for spill-over', 'Building Operations'],
+    [
+      47_000,
+      'allocation',
+      'Overflow block L1-A06…A10 opened for spill-over',
+      'Building Operations',
+    ],
     [62_000, 'gate_hold', 'Gate hold — unregistered plate at P1 entry', 'UNKNOWN-441'],
     [75_000, 'entry', 'Contractor check-in — badge 4471', 'HLM-2207', 'L1-B11'],
     [88_000, 'maintenance', 'Work order MT-0041 opened for EV-L3-F08', 'EV Network'],

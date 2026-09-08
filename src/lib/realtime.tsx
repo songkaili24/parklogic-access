@@ -445,8 +445,13 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const issueBulkPasses = React.useCallback<RealtimeContextValue['issueBulkPasses']>(
     (count, opts) => {
       const created: VisitorPass[] = [];
+      // Reserve distinct bays up front: spotsRef only updates on re-render,
+      // so per-iteration nextVisitorBay() calls would all land on one bay.
+      const openBays = spotsRef.current
+        .filter((spot) => spot.type === 'visitor' && spot.status === 'available')
+        .slice(0, count);
       for (let i = 0; i < count; i++) {
-        const bayId = nextVisitorBay();
+        const bayId = openBays[i]?.id ?? nextVisitorBay();
         const [level, spot] = bayId.split('-');
         const pass: VisitorPass = {
           code: `PL-EV${String(i + 1).padStart(2, '0')}-${Math.random()
@@ -662,7 +667,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       if (ticket) {
         setStations((prev) =>
           prev.map((station) =>
-            station.id === ticket.stationId && !prev.some((s) => s.status === 'fault')
+            // Restore the station unless another bank is still faulted.
+            station.id === ticket.stationId &&
+            !prev.some((s) => s.id !== station.id && s.status === 'fault')
               ? { ...station, status: 'available', note: undefined }
               : station,
           ),

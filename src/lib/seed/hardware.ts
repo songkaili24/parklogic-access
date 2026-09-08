@@ -1,5 +1,4 @@
 import type { HardwareDevice } from '@/lib/types';
-import { uid } from '@/lib/utils';
 
 const DAY = 86_400_000;
 const HR = 3_600_000;
@@ -132,11 +131,4 @@ export function generateDevices(): HardwareDevice[] {
 /** Reboot command template shown in the hardware console. */
 export function rebootCommand(deviceId: string): string {
   return `plctl device reboot --id ${deviceId} --wait-health 30s`;
-}
-
-export function deviceErrorEvent(
-  deviceId: string,
-  message: string,
-): { id: string; at: number; message: string } {
-  return { id: uid('dev-err'), at: Date.now(), message: `${deviceId}: ${message}` };
 }

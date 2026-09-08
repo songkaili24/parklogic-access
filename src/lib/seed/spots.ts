@@ -55,7 +55,7 @@ export function generateSpots(holders: PermitHolder[] = []): ParkingSpot[] {
 
   const spots: ParkingSpot[] = [];
   let generalOccupied = 0;
-  const GENERAL_OCCUPIED_TARGET = 70;
+  const GENERAL_OCCUPIED_TARGET = 72;
   let plateIndex = 20;
 
   for (const level of LEVELS) {
@@ -78,6 +78,9 @@ export function generateSpots(holders: PermitHolder[] = []): ParkingSpot[] {
         } else if (VISITOR_HELD.has(id)) {
           status = 'reserved';
           plate = PLATE_POOL[(i + 9) % PLATE_POOL.length];
+        } else if (type === 'visitor') {
+          // Arrival pool: visitor bays stay open for guest check-ins.
+          status = 'available';
         } else if (holderByBay.has(id)) {
           const holder = holderByBay.get(id)!;
           holderId = holder.id;
@@ -89,7 +92,7 @@ export function generateSpots(holders: PermitHolder[] = []): ParkingSpot[] {
           }
         } else if (OFFLINE_BAYS.has(id)) {
           status = 'offline';
-        } else if (generalOccupied < GENERAL_OCCUPIED_TARGET && rng() < 0.78) {
+        } else if (generalOccupied < GENERAL_OCCUPIED_TARGET && rng() < 0.9) {
           status = 'occupied';
           generalOccupied += 1;
           plate = PLATE_POOL[plateIndex++ % PLATE_POOL.length];

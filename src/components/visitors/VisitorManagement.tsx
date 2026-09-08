@@ -90,8 +90,6 @@ export function VisitorManagement() {
       host,
       validFrom: Date.now(),
       plate: plateCheck.normalized,
-      level: target.level,
-      spot: target.id.split('-')[1] ?? target.id,
       validUntil: now + duration * 60_000,
     });
 

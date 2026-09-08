@@ -5,20 +5,36 @@ import * as React from 'react';
 import type {
   ActivityEvent,
   AlertSeverity,
+  ChargingSession,
+  ChargingStation,
   ConnectionStatus,
+  EvPricing,
+  GateEvent,
+  MaintenanceTicket,
   OccupancySummary,
   ParkingSpot,
+  PermitHolder,
   SpotStatus,
   SystemAlert,
   VisitorPass,
+  VisitorVisit,
+  WaitlistEntry,
 } from '@/lib/types';
 import { summarizeOccupancy } from '@/lib/occupancy';
-import { PLATE_POOL } from '@/lib/constants';
+import { EV_PRICING_DEFAULTS, PLATE_POOL } from '@/lib/constants';
 import { uid } from '@/lib/utils';
 import {
+  generateGateEvents,
   generateInitialAlerts,
   generateInitialEvents,
+  generatePermitHolders,
+  generateSessions,
   generateSpots,
+  generateStations,
+  generateTickets,
+  generateVisitHistory,
+  generateVisitorPasses,
+  generateWaitlist,
   LEVELS,
   ZONES,
 } from '@/lib/seed';
@@ -57,9 +73,19 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [activity, setActivity] = React.useState<ActivityEvent[]>([]);
   const [alerts, setAlerts] = React.useState<SystemAlert[]>([]);
   const [passes, setPasses] = React.useState<VisitorPass[]>([]);
+  const [holders, setHolders] = React.useState<PermitHolder[]>([]);
+  const [visits, setVisits] = React.useState<VisitorVisit[]>([]);
+  const [stations, setStations] = React.useState<ChargingStation[]>([]);
+  const [sessions, setSessions] = React.useState<ChargingSession[]>([]);
+  const [tickets, setTickets] = React.useState<MaintenanceTicket[]>([]);
+  const [pricing, setPricing] = React.useState<EvPricing>(EV_PRICING_DEFAULTS);
+  const [gateEvents, setGateEvents] = React.useState<GateEvent[]>([]);
+  const [waitlist, setWaitlist] = React.useState<WaitlistEntry[]>([]);
   const [now, setNow] = React.useState(() => Date.now());
 
   const spotsRef = React.useRef<ParkingSpot[]>([]);
+  const sessionsRef = React.useRef<ChargingSession[]>([]);
+  const stationsRef = React.useRef<ChargingStation[]>([]);
   React.useEffect(() => {
     spotsRef.current = spots;
   }, [spots]);
@@ -67,7 +93,17 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   // Handshake phase — a real client would await the socket "open" here.
   React.useEffect(() => {
     const connect = window.setTimeout(() => {
-      setSpots(generateSpots());
+      const holdersSeed = generatePermitHolders();
+      setHolders(holdersSeed);
+      setSpots(generateSpots(holdersSeed));
+      setPasses(generateVisitorPasses());
+      setVisits(generateVisitHistory());
+      const stationsSeed = generateStations();
+      setStations(stationsSeed);
+      setSessions(generateSessions(stationsSeed));
+      setTickets(generateTickets());
+      setGateEvents(generateGateEvents());
+      setWaitlist(generateWaitlist());
       setActivity(generateInitialEvents());
       setAlerts(generateInitialAlerts());
       setConnection('syncing');

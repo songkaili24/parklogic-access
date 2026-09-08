@@ -5,4 +5,5 @@ export { generateSpots } from '@/lib/seed/spots';
 export { generateStations, generateSessions, generateTickets } from '@/lib/seed/ev';
 export { generateVisitorPasses, generateVisitHistory } from '@/lib/seed/visitors';
 export { generateGateEvents } from '@/lib/seed/gates';
+export { generateWaitlist } from '@/lib/seed/waitlist';
 export { generateInitialEvents, generateInitialAlerts } from '@/lib/seed/activity';

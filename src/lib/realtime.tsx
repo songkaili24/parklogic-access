@@ -79,6 +79,11 @@ export interface RealtimeContextValue {
   alerts: SystemAlert[];
   summary: OccupancySummary;
   passes: VisitorPass[];
+  stations: ChargingStation[];
+  sessions: ChargingSession[];
+  tickets: MaintenanceTicket[];
+  pricing: EvPricing;
+  gateEvents: GateEvent[];
   waitlist: WaitlistEntry[];
   /** Ticking wall clock used for relative timestamps. */
   now: number;

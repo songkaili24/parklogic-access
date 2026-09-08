@@ -24,9 +24,26 @@ function zonePermit(level: LevelId, zone: string, rng: () => number): PermitType
  * 3 charging, 3 offline. Visitor passes hold L1-A01…A05; permit
  * assignments hold 12 bays (7 of them currently parked).
  */
-const PARKED_HOLDERS = new Set(['L3-G01', 'L3-G02', 'L2-C01', 'L2-C04', 'L2-C10', 'L2-D01', 'L2-D07']);
+const PARKED_HOLDERS = new Set([
+  'L3-G01',
+  'L3-G02',
+  'L2-C01',
+  'L2-C04',
+  'L2-C10',
+  'L2-D01',
+  'L2-D07',
+]);
 const VISITOR_HELD = new Set(['L1-A01', 'L1-A02', 'L1-A03', 'L1-A04', 'L1-A05']);
-const EV_STATUS: SpotStatus[] = ['charging', 'charging', 'charging', 'available', 'available', 'available', 'reserved', 'offline'];
+const EV_STATUS: SpotStatus[] = [
+  'charging',
+  'charging',
+  'charging',
+  'available',
+  'available',
+  'available',
+  'reserved',
+  'offline',
+];
 const OFFLINE_BAYS = new Set(['L1-B03', 'L2-E09', 'L3-H12']);
 
 export function generateSpots(holders: PermitHolder[] = []): ParkingSpot[] {

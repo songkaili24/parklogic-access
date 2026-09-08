@@ -41,6 +41,8 @@ export interface ParkingSpotCellProps {
   spot: ParkingSpot;
   selected?: boolean;
   onSelect?: (spot: ParkingSpot) => void;
+  /** Roving tabindex for keyboard grid navigation (managed by the grid). */
+  tabIndex?: number;
   className?: string;
 }
 
@@ -52,6 +54,7 @@ export function ParkingSpotCell({
   spot,
   selected = false,
   onSelect,
+  tabIndex,
   className,
 }: ParkingSpotCellProps) {
   const label = `${spot.id} — ${spot.status}${spot.plate ? ` · ${spot.plate}` : ''}`;
@@ -63,6 +66,7 @@ export function ParkingSpotCell({
       aria-label={label}
       aria-pressed={selected}
       onClick={() => onSelect?.(spot)}
+      tabIndex={tabIndex}
       className={cn(
         'relative flex aspect-square flex-col items-center justify-center rounded-sm border font-display',
         'text-[11px] leading-none transition-all duration-150',

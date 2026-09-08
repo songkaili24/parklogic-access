@@ -24,3 +24,7 @@ export {
 export { ActivityLog, type ActivityLogProps } from '@/components/ui/ActivityLog';
 export { OccupancyGauge, type OccupancyGaugeProps } from '@/components/ui/OccupancyGauge';
 export { SpaceDetailPanel, type SpaceDetailPanelProps } from '@/components/ui/SpaceDetailPanel';
+export {
+  SpaceDetailPanel,
+  type SpaceDetailPanelProps,
+} from '@/components/ui/SpaceDetailPanel';

@@ -16,6 +16,9 @@ const ROOT = path.resolve(__dirname, '../../..');
 const GUARDED_FILES = [
   'src/components/billing/BillingBoard.tsx',
   'src/components/billing/GenerateInvoiceDialog.tsx',
+  'src/components/__tests__/boards.test.tsx',
+  'src/lib/__tests__/realtime-provider.test.tsx',
+  'src/lib/__tests__/seed.test.ts',
 ];
 
 function lint(files: string[]): string {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { providerTimers, mountWithProbe, advanceTicks, SIM_TICK_MS, type Mutable } from './provider-harness';
+import { providerTimers, mountWithProbe, advanceTicks, type Mutable } from './provider-harness';
 
 describe('RealtimeProvider handshake', () => {
   beforeEach(() => providerTimers.beforeEach());

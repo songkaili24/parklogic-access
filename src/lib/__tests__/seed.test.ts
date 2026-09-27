@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  generateDevices,
   generateGateEvents,
   generateInvoices,
   generatePermitHolders,
@@ -14,7 +13,6 @@ import {
   generateViolations,
   generateWaitlist,
   invoiceTotal,
-  permitLineItem,
 } from '@/lib/seed';
 import { LEVELS, LEVEL_NAMES, ZONES, zoneSize } from '@/lib/seed/core';
 

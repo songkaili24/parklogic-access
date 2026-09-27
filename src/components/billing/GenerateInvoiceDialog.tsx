@@ -2,11 +2,9 @@
 
 import * as React from 'react';
 
-import type { Invoice } from '@/lib/types';
 import { validateCompanyEmail } from '@/lib/edge-cases';
-import { PERMIT_RATES, permitLineItem } from '@/lib/seed';
+import { permitLineItem } from '@/lib/seed';
 import { useRealtime } from '@/lib/realtime';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 
 const PERIODS = ['2026-09', '2026-10', '2026-11'] as const;

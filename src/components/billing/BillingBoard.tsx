@@ -3,7 +3,7 @@
 import * as React from 'react';
 
 import type { Invoice, InvoiceStatus } from '@/lib/types';
-import { invoiceTotal, permitLineItem } from '@/lib/seed';
+import { invoiceTotal } from '@/lib/seed';
 import { useRealtime } from '@/lib/realtime';
 import { downloadCsv } from '@/lib/csv';
 import { cn } from '@/lib/utils';
@@ -40,8 +40,6 @@ function downloadReceipt(invoice: Invoice) {
     ],
   );
 }
-
-const PERIODS = ['2026-09', '2026-10', '2026-11'] as const;
 
 /** Invoice generation dialog with company-email validation. */
 const STATUS_FILTERS: Array<InvoiceStatus | 'all'> = ['all', 'draft', 'sent', 'overdue', 'paid'];
